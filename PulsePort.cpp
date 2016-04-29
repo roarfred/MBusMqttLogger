@@ -123,32 +123,12 @@ float PulsePort::GetAverage()
 	{
 		vStartIndex = (gLastAverageDataIndex + 1) % 60;	// The first item is the one after the index
 		vEndIndex = vStartIndex + 59;
-//		if (vStartIndex > 0)							// Unless we got back to the first (index at the last), 
-//			vEndIndex += 60;							// move end to 60 steps after the first
 	}
-	/*
-	Serial.print("Average data: [");
-	for (int i = 0; i < 60; i++)
-	{
-		Serial.print(gAverageData[i]);
-		if (i<59)
-			Serial.print(", ");
-	}
-	Serial.println("]");
-	Serial.print("Start: ");
-	Serial.print(vStartIndex);
-	Serial.print(", End: ");
-	Serial.println(vEndIndex);
-
-	Serial.print("Getting average from: [");
-	*/
+	
 	for (int i = vStartIndex + 1; i < vEndIndex; i++)
 	{
 		vSum += gAverageData[i % 60] - gAverageData[(i-1) % 60];
-		//Serial.print(gAverageData[i % 60] - gAverageData[(i - 1) % 60]);
-		//Serial.print(", ");
 	}
-	//Serial.println("]");
 
 	return vSum / (float)(vEndIndex - vStartIndex - 1) * 60.0 / (float)gPulsesPerKWh * 1000.0 / ((float)gAverageOverMinutes / 60.0);
 }
@@ -163,13 +143,6 @@ float PulsePort::Current()
 
 	/* Should work even if gLastPulse is less than gPreviousPulse */
 	vTimeInMilliSeconds = gLastPulseMillis - gPreviousPulseMillis;
-
-	/*
-	Serial.print("vTimeInMicroSeconds: ");
-	Serial.println(vTimeInMicroSeconds);
-	Serial.print("gPulsesPerKWh: ");
-	Serial.println((float)gPulsesPerKWh);
-	*/
 
 	/*
 	--- UNITS IN CALCULATION ---
@@ -203,13 +176,7 @@ void PulsePort::SaveTotalValue(int pAddress, unsigned long pValue)
 	EEPROM.begin(512);
 	EEPROM.put(vAddress, EEPROM_CHECK_SUM);
 	vAddress++;
-	
-	/*
-	Serial.print("Saving value ");
-	Serial.print(pTotalMeter);
-	Serial.print(" at address ");
-	Serial.println(vAddress);
-	*/
+
 	EEPROM.put(vAddress, pValue);
 
 	EEPROM.commit();
@@ -225,17 +192,15 @@ bool PulsePort::ReadTotalValue(int pAddress, unsigned long& pValue)
 
 	if (vCheckSum == EEPROM_CHECK_SUM)
 	{
-		//Serial.println("Checksum match");
 		vAddress++;
 		EEPROM.get(vAddress, pValue);
 
-		Serial.print(F("Read initial value from EEPROM: "));
-		Serial.println(pValue);
+		printf("Read initial value from EEPROM: %ld", pValue);
 		vResult = true;
 	}
 	else
 	{
-		Serial.println("Checksum didn't match. No values in EEPROM");
+		printf("Checksum didn't match. No values in EEPROM");
 	}
 
 	EEPROM.end();
@@ -271,10 +236,6 @@ ISR_Function PulsePort::GetISR(int pPin)
 
 void PulsePort::ISR(int pPin)
 {
-	/*
-	Serial.print("Received interupt for pin #");
-	Serial.println(pPin);
-	*/
 	for (int i = 0; i < PortCount; i++)
 	{
 		if (Ports[i]->gPin == pPin)

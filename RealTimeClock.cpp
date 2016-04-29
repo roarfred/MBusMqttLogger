@@ -29,24 +29,24 @@ bool RealTimeClock::Update()
 }
 void RealTimeClock::SetupNtp()
 {
-	Serial.print(F("Connecting to NTP server"));
+	printf("Connecting to NTP server");
 	while (!UpdateTime(true)) {
-		Serial.print(".");
+		printf(".");
 	}
-	Serial.println("");
+	printf("\n");
 }
 bool RealTimeClock::UpdateTime(bool pForceUpdate)
 {
 	if (pForceUpdate)
 	{
-		Serial.println(F("Force time update..."));
+		printf("Force time update...");
 		gTimeClient->update();
 		if (gTimeClient->getRawTime() > 1000)
 		{
 			gLastUpdatedTime = millis();
 			gLastTime = gTimeClient->getRawTime();
-			Serial.print("Time is ");
-			Serial.println(gTimeClient->getFormattedTime());
+			printf("Time is ");
+			printf(gTimeClient->getFormattedTime().c_str());
 			return true;
 		}
 		else
@@ -56,21 +56,20 @@ bool RealTimeClock::UpdateTime(bool pForceUpdate)
 	{
 		if (ShouldUpdateTime())
 		{
-			Serial.println(F("Updating time now..."));
+			printf("Updating time now...");
 			if (!UpdateTime(true))
 			{
-				Serial.println(F("Failed to update time..."));
+				printf("Failed to update time...");
 				if (ShouldUpdateTime(10))
 				{
-					Serial.println(F("ERROR updating time for a long time now..."));
+					printf("ERROR updating time for a long time now...");
 					// It's been way too long since last update
 					return false;
 				}
 			}
 			else
 			{
-				Serial.print("Time is ");
-				Serial.println(gTimeClient->getFormattedTime());
+				printf("Time is %s", gTimeClient->getFormattedTime().c_str());
 			}
 		}
 		return true;
@@ -90,12 +89,6 @@ bool RealTimeClock::ShouldUpdateTime(int pFactor)
 		return true;
 	else
 	{
-		/*
-		Serial.print("Seconds to next clock update: ");
-		Serial.println((UPDATE_TIME_INTERVAL - (millis() - gLastUpdatedTime)) / 1000);
-		*/
 		return false;
 	}
 }
-
-//RealTimeClock::gTimeClient("time.nist.gov");

@@ -21,19 +21,13 @@ float UserData::DataAsFloat(float pFactor)
     switch (DIF[0] & 0b1111)
     {
         case 0b0000:
-            Serial.print("- No data -: ");
+			printf("- No data -: ");
             break;
         case 0b0001:
         case 0b0010:
         case 0b0011:
         case 0b0100:
             vValue = DataAsInteger();
-            /*
-            Serial.print("Integer (BIN");
-            Serial.print(DataLength);
-            Serial.print("): ");
-            Serial.print(vValue);
-            */
             break;
         case 0b1001:
         case 0b1010:
@@ -41,15 +35,9 @@ float UserData::DataAsFloat(float pFactor)
         case 0b1100:
         case 0b1110:
             vValue = DataAsBCDInteger();
-            /*
-            Serial.print("Integer (BCD");
-            Serial.print(DataLength);
-            Serial.print("): ");
-            Serial.print(DataAsBCDInteger());
-            */
             break;
         default:
-            Serial.print("Unknown data type: ");
+			printf("Unknown data type: ");
             break;
     }
 
@@ -90,12 +78,10 @@ tm UserData::DataAsDate_F()
 
     if (DataLength != 4)
     {
-        Serial.print("Incompatible Data Length for Date Type F: ");
-        Serial.println(DataLength);
+		printf("Incompatible Data Length for Date Type F: %i", DataLength);
     }
     else
     {
-        //Serial.println("Data Length OK for Date Type F");
         tmp.tm_min = (Data[0] & 0b00111111);
         tmp.tm_hour = (Data[1] & 0b00011111);
         tmp.tm_mday = (Data[2] & 0b00011111);
@@ -112,17 +98,14 @@ tm UserData::DataAsDate_G()
 
     if (DataLength != 2)
     {
-        Serial.print("Incompatible Data Length for Date Type G: ");
-        Serial.println(DataLength);
+		printf("Incompatible Data Length for Date Type G: %i", DataLength);
     }
     else if (Data[0] == 0xff && Data[1] == 0xff)
     {
-        //Serial.println("Data is 0xFF for Date Type G");
+		// This happens some times. Invalid date, but what to do?
     }
     else
     {
-
-        //Serial.println("Data Length OK for Date Type G");
         tmp.tm_min = 0;
         tmp.tm_hour = 0;
         tmp.tm_mday = (Data[0] & 0b00011111);
@@ -139,13 +122,10 @@ tm UserData::DataAsDate_I()
     tm tmp;
     if (DataLength != 6)
     {
-        Serial.print("Incompatible Data Length for Date Type I: ");
-        Serial.println(DataLength);
+		printf("Incompatible Data Length for Date Type I: %i", DataLength);
     }
     else
     {
-
-        //Serial.println("Data Length OK for Date Type I");
         tmp.tm_mday = (Data[0] & 0b00011111);
         tmp.tm_mon = (Data[1] & 0b00001111) >> 1;
         tmp.tm_year = ((Data[0] & 0b11100000) >> 1) & (Data[1] & 0b11110000);
@@ -158,12 +138,10 @@ tm UserData::DataAsDate_J()
     tm tmp;
     if (DataLength != 3)
     {
-        Serial.print("Incompatible Data Length for Date Type J: ");
-        Serial.println(DataLength);
+		printf("Incompatible Data Length for Date Type J: ", DataLength);
     }
     else
     {
-        //Serial.println("Data Length OK for Date Type J");
         tmp.tm_mday = (Data[0] & 0b00011111);
         tmp.tm_mon = (Data[1] & 0b00001111) >> 1;
         tmp.tm_year = ((Data[0] & 0b11100000) >> 1) & (Data[1] & 0b11110000);
@@ -174,84 +152,75 @@ tm UserData::DataAsDate_J()
 void UserData::print(tm tmp)
 {
     if (tmp.tm_mday < 10)
-        Serial1.print(0);
-    Serial1.print(tmp.tm_mday);
-    Serial1.print(".");
+        printf(0);
+	printf("%i.", tmp.tm_mday);
 
     if (tmp.tm_mon < 10)
-        Serial.print(0);
-    Serial1.print(tmp.tm_mon);
-    Serial1.print(".");
+        printf(0);
+	printf("%i.", tmp.tm_mon);
 
     if (tmp.tm_year < 10)
-        Serial1.print(0);
-    Serial1.print(tmp.tm_year);
+		printf(0);
+	printf("%i", tmp.tm_year);
 
     if (tmp.tm_min != 0 || tmp.tm_hour != 0)
     {
-        Serial1.print(" ");
+		printf(" ");
         if (tmp.tm_hour < 10)
-            Serial1.print(0);
-        Serial1.print(tmp.tm_hour);
-        Serial1.print(":");
+			printf(0);
+		printf("%i:", tmp.tm_hour);
 
         if (tmp.tm_min < 10)
-            Serial1.print(0);
-        Serial1.print(tmp.tm_min);
+			printf(0);
+		printf("%i", tmp.tm_min);
     }
 }
 
 void UserData::debug()
 {
-    //Serial.println(" #### START DEBUG ####");
-    Serial1.print("  DIF: ");
+	printf("  DIF: ");
     for (int i=0; i<11; i++)
     {
         if (DIF[i])
         {
-            Serial1.print(DIF[i], HEX);
-            Serial1.print(" ");
+			printf("%x", DIF[i]);
+			printf(" ");
         }
     }
-    Serial1.print(" / VIF: ");
+	printf(" / VIF: ");
     for (int i=0; i<11; i++)
     {
         if (VIF[i])
         {
-            Serial1.print(VIF[i], HEX);
-            Serial1.print(" ");
+			printf("%x", VIF[i]);
+			printf(" ");
         }
     }
 
     if (this->DataLength > 0)
     {
-        Serial1.print(" / Data ( ");
-        Serial1.print(this->DataLength);
-        Serial1.print(" bytes):");
+		printf(" / Data ( %i bytes):", this->DataLength);
         for (int i=0; i<this->DataLength; i++)
         {
-            Serial1.print(" ");
-            Serial1.print(this->Data[i], HEX);
+			printf(" %x", this->Data[i]);
         }
-        //Serial.println("");
     }
 
     switch (DIF[0] & 0b00110000)
     {
         case 0b00000000:
-            Serial1.println("  Instantaneous value");
+			printf("  Instantaneous value");
             break;
         case 0b00010000:
-            Serial1.println("  Maximum value");
+			printf("  Maximum value");
             break;
         case 0b00100000:
-            Serial1.println("  Minimum value");
+			printf("  Minimum value");
             break;
         case 0b00110000:
-            Serial1.println("  Value during error state");
+			printf("  Value during error state");
             break;
     }
-    //Serial.println(" #### END DEBUG ####");
 }
 
 
@@ -508,8 +477,7 @@ void UserData::parse()
     }
     else
     {
-        Serial1.print("Unknown VIF: 0x");
-        Serial1.println(VIF[0], HEX);
+		printf("Unknown VIF: 0x%x", VIF[0]);
     }
 }
 

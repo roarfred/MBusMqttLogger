@@ -29,13 +29,10 @@ int Config::SaveString(int pAddress, char* pString)
 {
 	int vAddress = 0;
 	int vLength = strlen(pString) + 1;
-	//Serial.print("Storing length of string: ");
-	//Serial.println(vLength);
+
 	EEPROM.put(pAddress + vAddress, vLength);
 	vAddress++;
 
-	//Serial.print("Storing string: ");
-	//Serial.println(pString);
 	for (int i = 0; i<vLength; i++)
 	{
 		EEPROM.put(pAddress + vAddress, pString[i]);
@@ -54,7 +51,7 @@ bool Config::Load(int pAddress)
 	if (EEPROM.read(vAddress) == EEPROM_CHECK_SUM)
 	{
 		vAddress++;
-		Serial.println("Found correct checksum of EEPROM");
+		printf("Found correct checksum of EEPROM");
 
 		vAddress += ReadString(vAddress, &Ssid);
 		vAddress += ReadString(vAddress, &Pwd);
@@ -76,20 +73,12 @@ int Config::ReadString(int pAddress, char* pString[])
 
 	byte vLength = EEPROM.read(pAddress + vAddress);
 	vAddress++;
-	/*
-	Serial.print("Found length of string: ");
-	Serial.println(vLength);
-	*/
+
 	*pString = new char[vLength];
 	for (int i = 0; i<vLength; i++)
 	{
 		(*pString)[i] = EEPROM.read(pAddress + vAddress++);
 	}
 	
-	/*
-	Serial.print("Read string from EEPROM: [");
-	Serial.print(*pString);
-	Serial.println("]");
-	*/
 	return vAddress;
 }

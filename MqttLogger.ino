@@ -12,6 +12,8 @@
 #include "MBus.h"
 
 
+#define MBUS_METER_ADDRESS 0 // The address of the MBus meter
+
 /*
  * Buffers to hold pointers in global scope 
  */
@@ -19,7 +21,7 @@ char BUFFER_MQTT_CLIENT[sizeof(Adafruit_MQTT_Client)];		// Buffer for gMqttClien
 char BUFFER_MQTT_PUBLISH[sizeof(Adafruit_MQTT_Publish)];	// Buffer for gMqttPublish
 char BUFFER_WIFICLIENT[sizeof(WiFiClient)];					// Buffer for gWebClient
 char BUFFER_ELECTRICAL_METER[sizeof(PulsePort)];			// Buffer for gElectricalMeter
-char BUFFER_HEAT_PUMP_METER[sizeof(PulsePort)];				// Buffer for gHeatPumpMeter
+char BUFFER_HEAT_PUMP_METER[sizeof(MBus)];				// Buffer for gHeatPumpMeter
 char BUFFER_CLOCK[sizeof(RealTimeClock)];					// Buffer for gClock
 
 
@@ -43,7 +45,7 @@ WiFiClient* gWiFiClient;						// WiFi client, used by the MQTT stuff
 Adafruit_MQTT_Client* gMqttClient;				// MQTT client, used to connect to a MQTT server
 Adafruit_MQTT_Publish* gMqttChannel;			// MQTT channel, used to report data to the MQTT server
 PulsePort* gElectricalMeter;					// The port used to read the electrical meter
-PulsePort* gHeatPumpMeter;						// The port used to read the heat pump meter
+MBus* gHeatPumpMeter;						// The port used to read the heat pump meter
 
 /*
 * Application Logic
@@ -68,15 +70,28 @@ String GetConfigPage();								// Serving the request to show/edit configuration
 */
 void SetupMqtt();													// Setup the MQTT connection
 void ConnectMqtt();													// Connect to the MQTT server
-void ReportToMqtt(PulsePort* pMeter);								// Set up the JSON and report data
+void ReportPulsePortToMqtt(PulsePort* pMeter);						// Set up the JSON and report data, for PulsePort
+void ReportMBusToMqtt(MBus* pMeter);								// Set up the JSON and report data, for MBus
 void GetMqttTopic(char* pBuffer);									// Get the name of the MQTT topic
 void GetJSON(char* pBuffer, int pBufferSize, PulsePort* pMeter);	// Produce the JSON to be reported
+
+
+/*
+* MBus methods
+*/
+void MBus_TelegramCallback(Telegram &pTelegram) {}
+void MBus_ErrorCallback(const char* pMessage) {}
+
 
 /*
 * IO setup
 */
 void SetupPorts();
 
+void printf(const __FlashStringHelper *pString)
+{
+	printf("%s", pString);
+}
 
 void setup() 
 {
@@ -87,7 +102,15 @@ void setup()
 	LED(RED_LED, true);
 	FlashLED(GREEN_LED, 3);
 	FlashLED(RED_LED, 3);
-	Serial.begin(115200);
+
+	// Initialize H/W serial port for MBus communication
+	Serial.begin(2400, SERIAL_8E1);
+	while (!Serial) {}
+
+	// Initialize second H/W serial port for debug communication. This one is fixed on IO Pin 2 for ESP8266
+	Serial1.begin(9600);
+	while (!Serial1) {}
+	Serial1.setDebugOutput(true);
 
 	//gAppConfig = new Config();
 	LED(GREEN_LED, false);
@@ -104,7 +127,7 @@ void setup()
 	// We have config, so let's setup stuff and get on going
 	else
 	{
-		Serial.println(F("Starting Setup..."));
+		printf(F("Starting Setup..."));
 		FlashLED(RED_LED, 1);
 		LED(RED_LED, true);
 		ConnectToWiFi();
@@ -145,8 +168,8 @@ void loop() {
 		}
 
 		// Report data to MQTT
-		ReportToMqtt(gElectricalMeter);
-		ReportToMqtt(gHeatPumpMeter);
+		ReportPulsePortToMqtt(gElectricalMeter);
+		ReportMBusToMqtt(gHeatPumpMeter);
 
 		// wait a period, for the next reporting
 		unsigned long vDelay = 0;
@@ -159,7 +182,6 @@ void loop() {
 			vDelay += 5000;
 			
 			gElectricalMeter->UpdateAverage();
-			gHeatPumpMeter->UpdateAverage();
 		}
 	}
 }
@@ -231,7 +253,12 @@ void GetJSON(char* pBuffer, int pBufferSize, PulsePort* pMeter)
 	vRoot.printTo(pBuffer, pBufferSize);
 }
 
-void ReportToMqtt(PulsePort* pMeter)
+void ReportMBusToMqtt(MBus* pMeter)
+{
+	// TODO: Make implementation of MBus reader
+}
+
+void ReportPulsePortToMqtt(PulsePort* pMeter)
 {
 	ConnectMqtt();
 	
@@ -371,10 +398,7 @@ void SetupPorts()
 	gElectricalMeter->ReadTotalValue();
 	gElectricalMeter->Begin();
 
-	Serial.println(F("Pin 14 = Heat Pump meter reading (400ms pulse)"));
-	gHeatPumpMeter = new (BUFFER_HEAT_PUMP_METER)PulsePort("HP", 14, 1, 400000, 180, 5);
-	gHeatPumpMeter->ReadTotalValue();
-	gHeatPumpMeter->Begin();
+	gHeatPumpMeter = new MBus(MBUS_METER_ADDRESS, MBus_TelegramCallback, MBus_ErrorCallback);
 }
 
 
