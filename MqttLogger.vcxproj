@@ -1,0 +1,108 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{C5F80730-F44F-4478-BDAE-6634EFC2CA88}</ProjectGuid>
+    <RootNamespace>MqttLogger</RootNamespace>
+    <ProjectName>MqttLogger</ProjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v140</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v140</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup />
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>C:\Users\roarf\AppData\Local\arduino15\packages\esp8266\hardware\esp8266\2.1.0\cores\esp8266;C:\Users\roarf\AppData\Local\arduino15\packages\esp8266\hardware\esp8266\2.1.0\variants\generic;C:\Users\roarf\Source\Repos\MBusMqttLogger;C:\Users\roarf\Google Drive\Private\Elektronikk\Arduino\libraries\Adafruit_MQTT_Library;C:\Users\roarf\Google Drive\Private\Elektronikk\Arduino\libraries\Adafruit_MQTT_Library\utility;C:\Users\roarf\Google Drive\Private\Elektronikk\Arduino\libraries\ArduinoJson\src;C:\Users\roarf\Google Drive\Private\Elektronikk\Arduino\libraries\ArduinoJson\src\utility;C:\Users\roarf\AppData\Local\arduino15\packages\esp8266\hardware\esp8266\2.1.0\libraries\EEPROM;C:\Users\roarf\AppData\Local\arduino15\packages\esp8266\hardware\esp8266\2.1.0\libraries\EEPROM\utility;C:\Users\roarf\AppData\Local\arduino15\packages\esp8266\hardware\esp8266\2.1.0\libraries\ESP8266WebServer\src;C:\Users\roarf\AppData\Local\arduino15\packages\esp8266\hardware\esp8266\2.1.0\libraries\ESP8266WebServer\src\utility;C:\Users\roarf\AppData\Local\arduino15\packages\esp8266\hardware\esp8266\2.1.0\libraries\ESP8266WiFi\src;C:\Users\roarf\AppData\Local\arduino15\packages\esp8266\hardware\esp8266\2.1.0\libraries\ESP8266WiFi\src\utility;C:\Users\roarf\Google Drive\Private\Elektronikk\Arduino\libraries\NTPClient;C:\Users\roarf\Google Drive\Private\Elektronikk\Arduino\libraries\NTPClient\utility;C:\Program Files (x86)\Arduino\libraries;C:\Users\roarf\AppData\Local\arduino15\packages\esp8266\hardware\esp8266\2.1.0\libraries;C:\Program Files (x86)\Microsoft Visual Studio 14.0\Common7\IDE\Extensions\c0kj2zpn.d1c\Micro Platforms\default\debuggers;C:\Users\roarf\Google Drive\Private\Elektronikk\Arduino\libraries;C:\Users\roarf\AppData\Local\arduino15\packages\esp8266\hardware\esp8266\2.1.0/tools/sdk/include;C:\Users\roarf\AppData\Local\arduino15\packages\esp8266\tools\xtensa-lx106-elf-gcc\1.20.0-26-gb404fb9-2\xtensa-lx106-elf\include\c++\4.8.2;C:\Users\roarf\AppData\Local\arduino15\packages\esp8266\tools\xtensa-lx106-elf-gcc\1.20.0-26-gb404fb9-2\xtensa-lx106-elf\include\c++\4.8.2\xtensa-lx106-elf;C:\Users\roarf\AppData\Local\arduino15\packages\esp8266\tools\xtensa-lx106-elf-gcc\1.20.0-26-gb404fb9-2\xtensa-lx106-elf\include;C:\Users\roarf\AppData\Local\arduino15\packages\esp8266\tools\xtensa-lx106-elf-gcc\1.20.0-26-gb404fb9-2\lib\gcc\xtensa-lx106-elf\4.8.2\include;C:\Users\roarf\AppData\Local\arduino15\packages\esp8266\hardware\esp8266\2.1.0\tools\sdk\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ForcedIncludeFiles>C:\Users\roarf\Source\Repos\MBusMqttLogger\__vm\.MBusMqttLogger.vsarduino.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
+      <IgnoreStandardIncludePath>false</IgnoreStandardIncludePath>
+      <PreprocessorDefinitions>__ESP8266_ESp8266__;__ESP8266_ESP8266__;__ets__;ICACHE_FLASH;F_CPU=80000000L;ARDUINO=10607;ARDUINO_ESP8266_ESP01;ARDUINO_ARCH_ESP8266;ESP8266;__cplusplus=201103L;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <None Include="MqttLogger.ino">
+      <FileType>CppCode</FileType>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Config.h" />
+    <ClInclude Include="MBus.h" />
+    <ClInclude Include="PulsePort.h" />
+    <ClInclude Include="RealTimeClock.h" />
+    <ClInclude Include="resource.h" />
+    <ClInclude Include="Telegram.h" />
+    <ClInclude Include="UserData.h" />
+    <ClInclude Include="WebConfig.h" />
+    <ClInclude Include="__vm\.MBusMqttLogger.vsarduino.h" />
+    <ClInclude Include="__vm\.MqttLogger.vsarduino.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Config.cpp" />
+    <ClCompile Include="MBus.cpp" />
+    <ClCompile Include="PulsePort.cpp" />
+    <ClCompile Include="RealTimeClock.cpp" />
+    <ClCompile Include="Telegram.cpp" />
+    <ClCompile Include="UserData.cpp" />
+    <ClCompile Include="WebConfig.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="MqttLogger.rc" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+  <ProjectExtensions>
+    <VisualStudio>
+      <UserProperties arduino.upload.port="COM5" />
+    </VisualStudio>
+  </ProjectExtensions>
+</Project>
