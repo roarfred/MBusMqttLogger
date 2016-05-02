@@ -51,13 +51,26 @@ bool Config::Load(int pAddress)
 	if (EEPROM.read(vAddress) == EEPROM_CHECK_SUM)
 	{
 		vAddress++;
-		printf("Found correct checksum of EEPROM");
+		Serial1.println("Found correct checksum of EEPROM");
 
 		vAddress += ReadString(vAddress, &Ssid);
 		vAddress += ReadString(vAddress, &Pwd);
 		vAddress += ReadString(vAddress, &MqttServer);
 		vAddress += ReadString(vAddress, &MqttTopic);
 		vAddress += ReadString(vAddress, &MqttName);
+
+		Serial1.print("Loaded stored configuration: [");
+		Serial1.print(" SSID: ");
+		Serial1.print(Ssid);
+		Serial1.print(", Pwd: ");
+		Serial1.print(Pwd);
+		Serial1.print(", MQTT server: ");
+		Serial1.print(MqttServer);
+		Serial1.print(", Topic: ");
+		Serial1.print(MqttTopic);
+		Serial1.print(", Name: ");
+		Serial1.print(MqttName);
+		Serial1.print(" ]");
 
 		vSuccess = true;
 	}
