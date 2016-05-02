@@ -24,12 +24,12 @@ void WebConfig::Setup()
 	WiFi.softAP(AP_SSID);
 	WiFi.mode(WIFI_AP);
 
-	Serial.print("Configuring access point as ");
-	Serial.println(AP_SSID);
+	Serial1.println("Configuring access point as ");
+	Serial1.println(AP_SSID);
 
 	IPAddress vIP = WiFi.softAPIP();
-	Serial.print("AP IP Address: ");
-	Serial.println(vIP);
+	Serial1.println("AP IP Address: ");
+	Serial1.println(vIP.toString().c_str());
 	
 	SetupWebServer();
 
@@ -40,7 +40,7 @@ void WebConfig::Setup()
 void WebConfig::SetupWebServer()
 {
 	
-	Serial.println("Setting up web server on port 80");
+	Serial1.println("Setting up web server on port 80");
 	gWebServer.on("/", WebConfig::WebServer_GetConfig);
 	gWebServer.on("/save", HTTP_POST, WebConfig::WebServer_SaveConfig);
 	gWebServer.begin();
@@ -48,7 +48,7 @@ void WebConfig::SetupWebServer()
 
 void WebConfig::WebServer_GetConfig()
 {
-	Serial.println("Responding to HTTP request at '/'");
+	Serial1.println("Responding to HTTP request at '/'");
 	String vHtmlText = gConfigPageFunction();
 	gWebServer.send(200, "text/html", vHtmlText);
 }

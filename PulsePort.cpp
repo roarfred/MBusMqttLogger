@@ -195,12 +195,13 @@ bool PulsePort::ReadTotalValue(int pAddress, unsigned long& pValue)
 		vAddress++;
 		EEPROM.get(vAddress, pValue);
 
-		printf("Read initial value from EEPROM: %ld", pValue);
+		Serial1.println("Read initial value from EEPROM: ");
+		Serial1.println(pValue);
 		vResult = true;
 	}
 	else
 	{
-		printf("Checksum didn't match. No values in EEPROM");
+		Serial1.println("Checksum didn't match. No values in EEPROM");
 	}
 
 	EEPROM.end();
