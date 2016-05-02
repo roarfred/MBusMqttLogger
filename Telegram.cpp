@@ -36,7 +36,8 @@ bool Telegram::parse(byte pData[])
     }
     else
     {
-		printf("Invalid start of data: 0x%x", pData[0]);
+		Serial1.println("Invalid start of data: 0x");
+		Serial1.println(pData[0]);
         return false;
     }
 }
@@ -46,13 +47,16 @@ bool Telegram::parseShort(byte pData[])
 {
     if (pData[4] != 0x16)
     {
-		printf("Invalid end of data: 0x%x", pData[4]);
+		Serial1.print("Invalid end of data: 0x");
+		Serial1.println(pData[4]);
         return false;
     }
     else if (checkSum(pData, 1, 2) != pData[3])
     {
-		printf("Invalid checksum. Was 0x%x", pData[3]);
-		printf(". Should be 0x%x", checkSum(pData, 1, 2));
+		Serial1.print("Invalid checksum. Was 0x");
+		Serial1.print(pData[3], HEX);
+		Serial1.print(". Should be 0x");
+		Serial1.println(checkSum(pData, 1, 2), HEX);
         return false;
     }
     else
@@ -77,8 +81,9 @@ bool Telegram::parseShort(byte pData[])
         }
         else
         {
-			printf("Invalid control field. Was 0x%x", pData[1]);
-			printf(". Valid values are 0x40 (slave init), 0x5B/0x7B (req class 2 data) or 0x5A/0x7A (req class 1 data)");
+			Serial1.print("Invalid control field. Was 0x");
+			Serial1.print(pData[1], HEX);
+			Serial1.println(". Valid values are 0x40 (slave init), 0x5B/0x7B (req class 2 data) or 0x5A/0x7A (req class 1 data)");
             return false;
         }
     }
@@ -96,21 +101,26 @@ bool Telegram::parseLong(byte pData[])
     // There should be two equal bytes to describe the length
     if (pData[2] != vLength)
     {
-		printf("Invalid length field. Second byte did not match. Was 0x%x", pData[2]);
-		printf(". Should be 0x", pData[1]);
+		Serial1.print("Invalid length field. Second byte did not match. Was 0x");
+		Serial1.print(pData[2], HEX);
+		Serial1.print(". Should be 0x");
+		Serial1.println(pData[1], HEX);
         return false;
     }
     // The second last byte should be the checksum
     else if (checkSum(pData, 4, vLength) != pData[4 + vLength])
     {
-		printf("Invalid checksum. Was 0x%x", pData[4 + vLength]);
-		printf(". Should be 0x", checkSum(pData, 4, vLength));
+		Serial1.print("Invalid checksum. Was 0x");
+		Serial1.print(pData[4 + vLength], HEX);
+		Serial1.print(". Should be 0x");
+		Serial1.println(checkSum(pData, 4, vLength), HEX);
         return false;
     }
     // The very last byte should be 0x16
     else if (pData[5 + vLength] != 0x16)
     {
-		printf("Expected stop 0x16. Was 0x", pData[5 + vLength]);
+		Serial1.println("Expected stop 0x16. Was 0x");
+		Serial1.println(pData[5 + vLength], HEX);
         return false;
     }
     else
@@ -130,39 +140,40 @@ bool Telegram::getMode()
 
 bool Telegram::parseUserData(byte pData[], int pStart, int pLength)
 {
-	printf("Mode is: ");
+	Serial1.println("Mode is: ");
     if (getMode() == MSBFIRST) 
-		printf("MSBFIRST");
+		Serial1.println("MSBFIRST");
     else 
-		printf("LSBFIRST");
+		Serial1.println("LSBFIRST");
 
     if (this->CIField == 0x70)
     {
         // report of general application errors
-		printf("parseUserData::CI [report of general application errors] is NOT IMPLEMENTED YET");
+		Serial1.println("parseUserData::CI [report of general application errors] is NOT IMPLEMENTED YET");
         return false;
     }
     else if (this->CIField == 0x71)
     {
         // report of alarm status
-		printf("parseUserData::CI [report of alarm status] is NOT IMPLEMENTED YET");
+		Serial1.println("parseUserData::CI [report of alarm status] is NOT IMPLEMENTED YET");
         return false;
     }
     else if (this->CIField == 0x72 || this->CIField == 0x76)
     {
         // variable data respond
-		printf("parseUserData::CI [variable data respond] is IMPLEMENTED");
+		Serial1.println("parseUserData::CI [variable data respond] is IMPLEMENTED");
         return parseVariableDataStructure(pData, pStart, pLength);
     }
     else if (this->CIField == 0x73 || this->CIField == 0x77)
     {
         // fixed data respond
-		printf("parseUserData::CI [fixed data respond] is NOT IMPLEMENTED YET");
+		Serial1.println("parseUserData::CI [fixed data respond] is NOT IMPLEMENTED YET");
         return false;
     }
     else
     {
-		printf("parseUserData::NOT IMPLEMENTED for CI 0x%x", this->CIField);
+		Serial1.println("parseUserData::NOT IMPLEMENTED for CI 0x");
+		Serial1.println(this->CIField, HEX);
         return false;
     }
 }
@@ -203,7 +214,8 @@ UserData* Telegram::readData(byte pData[], int pStart, int pLength)
         if (vData->DIF[0] & 0xF == 0xF)
         {
             // handle special cases here (p. 16, Table 7)
-			printf("SPECIAL CASE NOT SUPPORTED: DIF is 0x%x", vData->DIF[0]);
+			Serial1.println("SPECIAL CASE NOT SUPPORTED: DIF is 0x");
+			Serial1.println(vData->DIF[0], HEX);
         }
         else
         {
@@ -282,8 +294,6 @@ UserData* Telegram::readData(byte pData[], int pStart, int pLength)
 
 int Telegram::LSBFIRSTtoInt16(byte pData[], int pStart)
 {
-	printf("%x", pData[pStart + 1]);
-	printf("%x", pData[pStart]);
     return ((int)pData[pStart+1] << 8) + (int)pData[pStart];
 }
 
@@ -305,8 +315,8 @@ bool Telegram::parseManufacturer(byte pData[], int pStart)
     this->Manufacturer[2] = 64 + vValues[0];
     this->Manufacturer[3] = 0;
 
-	printf("Man: ");
-	printf(this->Manufacturer);
+	Serial1.println("Man: ");
+	Serial1.println(this->Manufacturer);
 
     return true;
 }
