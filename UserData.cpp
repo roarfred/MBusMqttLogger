@@ -1,3 +1,4 @@
+#include <time.h>
 #include <Arduino.h>
 #include "UserData.h"
 
@@ -21,7 +22,7 @@ float UserData::DataAsFloat(float pFactor)
     switch (DIF[0] & 0b1111)
     {
         case 0b0000:
-			printf("- No data -: ");
+			Serial1.println("- No data -: ");
             break;
         case 0b0001:
         case 0b0010:
@@ -37,7 +38,7 @@ float UserData::DataAsFloat(float pFactor)
             vValue = DataAsBCDInteger();
             break;
         default:
-			printf("Unknown data type: ");
+			Serial1.println("Unknown data type: ");
             break;
     }
 
@@ -70,35 +71,65 @@ unsigned long UserData::DataAsBCDInteger()
     return vValue;
 }
 
-
-tm UserData::DataAsDate_F()
+time_t UserData::toUnixTime(int pYear, int pMonth, int pDay, int pHour, int pMinute, int pSeconds)
 {
-    tm tmp;
-    tmp.tm_mday = 0; // Assume invalid date
+	byte vDaysInMonth[] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
+	long vSecondsPerMinute = 60;
+	long vSecondsPerHour = vSecondsPerMinute * 60;
+	long vSecondsPerDay = vSecondsPerHour * 24;
 
+	long vTime = (pYear - 1970) * vSecondsPerDay * 365L;
+
+	for (int vYear = 1970; vYear<pYear; vYear++)
+		if ((vYear % 4 == 0) && ((vYear % 100 != 0) || (vYear % 400 == 0)))
+			vTime += vSecondsPerDay;
+
+	if (pMonth > 2 && (pYear % 4 == 0) && ((pYear % 100 != 0) || (pYear % 400 == 0)))
+		vTime += vSecondsPerDay;
+
+	for (int vMonth = 1; vMonth<pMonth; vMonth++)
+		vTime += vDaysInMonth[vMonth - 1] * vSecondsPerDay;
+
+	vTime += (pDay - 1) * vSecondsPerDay;
+	vTime += pHour * vSecondsPerHour;
+	vTime += pMinute * vSecondsPerMinute;
+	vTime += pSeconds;
+
+	return (time_t)vTime;
+}
+
+time_t UserData::DataAsDate_F()
+{
     if (DataLength != 4)
     {
-		printf("Incompatible Data Length for Date Type F: %i", DataLength);
+		Serial1.println("Incompatible Data Length for Date Type F: ");
+		Serial1.println(DataLength);
+		return 0;
     }
     else
     {
-        tmp.tm_min = (Data[0] & 0b00111111);
-        tmp.tm_hour = (Data[1] & 0b00011111);
-        tmp.tm_mday = (Data[2] & 0b00011111);
-        tmp.tm_mon = (Data[3] & 0b00001111);
-        tmp.tm_year = ((Data[2] & 0b11100000) >> 5) | ((Data[3] & 0b11110000) >> 1);
+		int vMinutes = (Data[0] & 0b00111111);
+		int vHours = (Data[1] & 0b00011111);
+		int vDay = (Data[2] & 0b00011111);
+		int vMonth = (Data[3] & 0b00001111);
+		int vCentury = (Data[1] & 0b01100000) >> 5;
+		int vYear = 1900 + (((Data[2] & 0b11100000) >> 5) | ((Data[3] & 0b11110000) >> 1)) + (100 * vCentury);
+		if (vYear < 1950)
+			vYear += 100;
+		return toUnixTime(vYear, vMonth, vDay, vHours, vMinutes, 0);
     }
-    return tmp;
+    
 }
 
-tm UserData::DataAsDate_G()
+time_t UserData::DataAsDate_G()
 {
     tm tmp;
     tmp.tm_mday = 0; // Assume invalid date
 
     if (DataLength != 2)
     {
-		printf("Incompatible Data Length for Date Type G: %i", DataLength);
+		Serial1.println("Incompatible Data Length for Date Type G: ");
+		Serial1.println(DataLength);
     }
     else if (Data[0] == 0xff && Data[1] == 0xff)
     {
@@ -113,16 +144,17 @@ tm UserData::DataAsDate_G()
         tmp.tm_year = ((Data[0] & 0b11100000) >> 5) | ((Data[1] & 0b11110000) >> 1);
 
     }
-    return tmp;
+	return mktime(&tmp);
 }
 
 
-tm UserData::DataAsDate_I()
+time_t UserData::DataAsDate_I()
 {
     tm tmp;
     if (DataLength != 6)
     {
-		printf("Incompatible Data Length for Date Type I: %i", DataLength);
+		Serial1.println("Incompatible Data Length for Date Type I: ");
+		Serial1.println(DataLength);
     }
     else
     {
@@ -130,15 +162,16 @@ tm UserData::DataAsDate_I()
         tmp.tm_mon = (Data[1] & 0b00001111) >> 1;
         tmp.tm_year = ((Data[0] & 0b11100000) >> 1) & (Data[1] & 0b11110000);
     }
-    return tmp;
+	return mktime(&tmp);
 }
 
-tm UserData::DataAsDate_J()
+time_t UserData::DataAsDate_J()
 {
     tm tmp;
     if (DataLength != 3)
     {
-		printf("Incompatible Data Length for Date Type J: ", DataLength);
+		Serial1.println("Incompatible Data Length for Date Type J: ");
+		Serial1.println(DataLength);
     }
     else
     {
@@ -146,79 +179,85 @@ tm UserData::DataAsDate_J()
         tmp.tm_mon = (Data[1] & 0b00001111) >> 1;
         tmp.tm_year = ((Data[0] & 0b11100000) >> 1) & (Data[1] & 0b11110000);
     }
-    return tmp;
+	return mktime(&tmp);
 }
 
 void UserData::print(tm tmp)
 {
     if (tmp.tm_mday < 10)
-        printf(0);
-	printf("%i.", tmp.tm_mday);
+        Serial1.println(0);
+	Serial1.println(tmp.tm_mday);
+	Serial1.println(".");
 
     if (tmp.tm_mon < 10)
-        printf(0);
-	printf("%i.", tmp.tm_mon);
+        Serial1.println(0);
+	Serial1.println(tmp.tm_mon);
+	Serial1.println(".");
 
     if (tmp.tm_year < 10)
-		printf(0);
-	printf("%i", tmp.tm_year);
+		Serial1.println(0);
+	Serial1.println(tmp.tm_year);
 
     if (tmp.tm_min != 0 || tmp.tm_hour != 0)
     {
-		printf(" ");
+		Serial1.println(" ");
         if (tmp.tm_hour < 10)
-			printf(0);
-		printf("%i:", tmp.tm_hour);
+			Serial1.println(0);
+		Serial1.println(tmp.tm_hour);
+		Serial1.println(":");
 
         if (tmp.tm_min < 10)
-			printf(0);
-		printf("%i", tmp.tm_min);
+			Serial1.println(0);
+		Serial1.println(tmp.tm_min);
     }
 }
 
 void UserData::debug()
 {
-	printf("  DIF: ");
+	Serial1.println("  DIF: ");
     for (int i=0; i<11; i++)
     {
         if (DIF[i])
         {
-			printf("%x", DIF[i]);
-			printf(" ");
+			Serial1.println(DIF[i], HEX);
+			Serial1.println(" ");
         }
     }
-	printf(" / VIF: ");
+	Serial1.println(" / VIF: ");
     for (int i=0; i<11; i++)
     {
         if (VIF[i])
         {
-			printf("%x", VIF[i]);
-			printf(" ");
+			Serial1.println(VIF[i], HEX);
+			Serial1.println(" ");
         }
     }
 
     if (this->DataLength > 0)
     {
-		printf(" / Data ( %i bytes):", this->DataLength);
+		Serial1.println(" / Data ( ");
+		Serial1.println(this->DataLength);
+		Serial1.println("bytes): ");
         for (int i=0; i<this->DataLength; i++)
         {
-			printf(" %x", this->Data[i]);
+			Serial1.println(" ");
+			Serial1.println(this->Data[i], HEX);
         }
     }
 
     switch (DIF[0] & 0b00110000)
     {
         case 0b00000000:
-			printf("  Instantaneous value");
+			Serial1.println("  Instantaneous value");
             break;
         case 0b00010000:
-			printf("  Maximum value");
+			Serial1.println("  Maximum value");
             break;
         case 0b00100000:
-			printf("  Minimum value");
+			Serial1.println("  Minimum value");
             break;
         case 0b00110000:
-			printf("  Value during error state");
+			Serial1.println("  Value during error state");
             break;
     }
 }
@@ -381,7 +420,7 @@ void UserData::parse()
     {
         // Date
         this->Type = UserDataType_Date;
-        this->ValueDate = DataAsDate_G();
+        this->Value = DataAsDate_G();
         this->Unit = UserDataUnit_Date;
         // data == 0010 => Date, type G
     }
@@ -391,7 +430,7 @@ void UserData::parse()
         {
              // Date and Time
             this->Type = UserDataType_DateAndTime;
-            this->ValueDate = DataAsDate_F();
+            this->Value = DataAsDate_F();
             this->Unit = UserDataUnit_Date;
             // data == 0100 => Date and time, type F
         }
@@ -399,7 +438,7 @@ void UserData::parse()
         {
             // Extended Time Point
             this->Type = UserDataType_ExtendedTimePoint;
-            this->ValueDate = DataAsDate_J();
+            this->Value = DataAsDate_J();
             this->Unit = UserDataUnit_Date;
             // data == 0011 => Date and time, type J
         }
@@ -407,10 +446,10 @@ void UserData::parse()
         {
             // Extended Date and Time Point
             this->Type = UserDataType_ExtendedDateAndTime;
-            this->ValueDate = DataAsDate_I();
+            this->Value = DataAsDate_I();
             this->Unit = UserDataUnit_Date;
             // data == 0110 => Date and time, type I
-        }
+		}
     }
     else if ((VIF[0] & 0b01111111) == 0b1101110)
     {
@@ -477,7 +516,8 @@ void UserData::parse()
     }
     else
     {
-		printf("Unknown VIF: 0x%x", VIF[0]);
+		Serial1.println("Unknown VIF: 0x");
+		Serial1.println(VIF[0], HEX);
     }
 }
 
