@@ -122,7 +122,7 @@ enum UserDataUnit
 class UserData
 {
     private:
-
+		time_t toUnixTime(int pYear, int pMonth, int pDay, int pHour, int pMinute, int pSeconds);
     public:
         byte DIF[11];
         byte VIF[11];
@@ -134,7 +134,6 @@ class UserData
         float Factor;
         UserDataUnit Unit;
         float Value;
-        tm ValueDate;
 
         UserData* Next;
 
@@ -143,10 +142,10 @@ class UserData
         float DataAsFloat(float pFactor);
         unsigned long DataAsInteger();
         unsigned long DataAsBCDInteger();
-        tm DataAsDate_F();
-        tm DataAsDate_G();
-        tm DataAsDate_I();
-        tm DataAsDate_J();
+        time_t DataAsDate_F();
+		time_t DataAsDate_G();
+		time_t DataAsDate_I();
+		time_t DataAsDate_J();
 
         void print(tm tmp);
         void debug();
