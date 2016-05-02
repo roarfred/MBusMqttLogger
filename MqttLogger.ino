@@ -28,10 +28,10 @@ char BUFFER_CLOCK[sizeof(RealTimeClock)];					// Buffer for gClock
 /*
  * Application Constants
  */
-const unsigned long REPORT_INTERVAL = 300000;	// 60000ms == 1 minute delay between MQTT reports
+const unsigned long REPORT_INTERVAL = 30000;	// 60000ms == 1 minute delay between MQTT reports
 const byte EEPROM_CHECK_SUM = 124;				// Used to check if config is stored. Change if structure changes
 const int EEPROM_CONFIG_ADDRESS = 0;			// EEPROM address where config class is stored
-const int AP_PIN = 2;							// Input pin for Access Point mode
+const int AP_PIN = 12;							// Input pin for Access Point mode
 const int GREEN_LED = 4;						// Green LED on Pin 4
 const int RED_LED = 5;							// Red LED on Pin 5
 												
@@ -70,17 +70,26 @@ String GetConfigPage();								// Serving the request to show/edit configuration
 */
 void SetupMqtt();													// Setup the MQTT connection
 void ConnectMqtt();													// Connect to the MQTT server
+bool ReportToMqtt(char* pMessage);									// Report any message to the MQTT server
 void ReportPulsePortToMqtt(PulsePort* pMeter);						// Set up the JSON and report data, for PulsePort
 void ReportMBusToMqtt(MBus* pMeter);								// Set up the JSON and report data, for MBus
 void GetMqttTopic(char* pBuffer);									// Get the name of the MQTT topic
-void GetJSON(char* pBuffer, int pBufferSize, PulsePort* pMeter);	// Produce the JSON to be reported
+void GetJSON(char* pBuffer, int pBufferSize, PulsePort* pMeter);	// Produce the JSON to be reported for pulse meter
+void GetJSONForImmediateValues(char* pBuffer, int pBufferSize, Telegram* pMeter);		// Produce the JSON to be reported for MBus device, immediate values
+void GetJSONForTotalValues(char* pBuffer, int pBufferSize, Telegram* pMeter);			// Produce the JSON to be reported for MBus device, total values
 
 
 /*
 * MBus methods
 */
-void MBus_TelegramCallback(Telegram &pTelegram) {}
-void MBus_ErrorCallback(const char* pMessage) {}
+void MBus_TelegramCallback(Telegram &pTelegram) {
+	Serial1.println("MBus_TelegramCallback: Received telegram");
+	ReportMBusToMqtt(&pTelegram);
+}
+void MBus_ErrorCallback(const char* pMessage) {
+	Serial1.print("MBus_ErrorCallback: ");
+	Serial1.println(pMessage);
+}
 
 
 /*
@@ -88,14 +97,17 @@ void MBus_ErrorCallback(const char* pMessage) {}
 */
 void SetupPorts();
 
-void printf(const __FlashStringHelper *pString)
-{
-	printf("%s", pString);
-}
-
 void setup() 
 {
+	// Initialize second H/W serial port for debug communication. This one is fixed on IO Pin 2 for ESP8266
+	Serial1.begin(115200);
+	while (!Serial1) {}
+	Serial1.setDebugOutput(true);
+	Serial1.println("Serial1");
+	Serial1.println("Serial port initialized");
+
 	SetupLEDs();
+	Serial1.println("LED setup complete");
 
 	//noInterrupts();
 	LED(GREEN_LED, true);
@@ -106,11 +118,7 @@ void setup()
 	// Initialize H/W serial port for MBus communication
 	Serial.begin(2400, SERIAL_8E1);
 	while (!Serial) {}
-
-	// Initialize second H/W serial port for debug communication. This one is fixed on IO Pin 2 for ESP8266
-	Serial1.begin(9600);
-	while (!Serial1) {}
-	Serial1.setDebugOutput(true);
+	Serial1.println("MBUS serial setup complete");
 
 	//gAppConfig = new Config();
 	LED(GREEN_LED, false);
@@ -119,6 +127,7 @@ void setup()
 	// If we have no stored config or manually requested, we'll start as an Access Point
 	if (APButtonPressed() || !gAppConfig.Load(EEPROM_CONFIG_ADDRESS))
 	{
+		Serial1.println("AP button pressed, or no config");
 		LED(RED_LED, true);
 		LED(GREEN_LED, true);
 		SetupConfigServer();
@@ -127,7 +136,7 @@ void setup()
 	// We have config, so let's setup stuff and get on going
 	else
 	{
-		printf(F("Starting Setup..."));
+		Serial1.println(F("Starting Setup..."));
 		FlashLED(RED_LED, 1);
 		LED(RED_LED, true);
 		ConnectToWiFi();
@@ -142,7 +151,7 @@ void setup()
 		SetupPorts();
 		FlashLED(RED_LED, 3);
 		FlashLED(GREEN_LED, 3);
-		Serial.println(F("Setup completed!"));
+		Serial1.println(F("Setup completed!"));
 		delay(1000);
 		LED(GREEN_LED, true);
 		//interrupts();
@@ -162,7 +171,7 @@ void loop() {
 		// Make sure we have the current time
 		if (!gClock->Update())
 		{
-			Serial.println(F("It's been too long since last time update. We will wait a fec seconds and try again later"));
+			Serial1.println(F("It's been too long since last time update. We will wait a fec seconds and try again later"));
 			delay(10000);
 			return;
 		}
@@ -187,7 +196,7 @@ void loop() {
 }
 void SetupConfigServer()
 {
-	Serial.println(F("Setting up configuration web site..."));
+	Serial1.println(F("Setting up configuration web site..."));
 	gConfigServer = new WebConfig(GetConfigPage, HandleSavePage);
 	gConfigServer->Setup();
 	gIsAccessPointMode = true;
@@ -199,21 +208,21 @@ float ToPercentage(int pValue, int pFull, int pMin)
 }
 void SetupClock()
 {
-	Serial.print(F("Setting up clock (NTC client)"));
+	Serial1.println(F("Setting up clock (NTC client)"));
 	gClock = new (BUFFER_CLOCK)RealTimeClock();
 }
 void SetupMqtt()
 {
-	Serial.print(F("Setting up MQTT for "));
-	Serial.println(gAppConfig.MqttServer);
+	Serial1.println(F("Setting up MQTT for "));
+	Serial1.println(gAppConfig.MqttServer);
 
 	gWiFiClient = new (BUFFER_WIFICLIENT)WiFiClient();
 	gMqttClient = new (BUFFER_MQTT_CLIENT)Adafruit_MQTT_Client(gWiFiClient, gAppConfig.MqttServer, 1883, "", "");
 	
 	char* vTopic = new char[100];
 	GetMqttTopic(vTopic);
-	Serial.print(F("MQTT topic is "));
-	Serial.println(vTopic);
+	Serial1.println(F("MQTT topic is "));
+	Serial1.println(vTopic);
 
 	gMqttChannel = new (BUFFER_MQTT_PUBLISH)Adafruit_MQTT_Publish(gMqttClient, vTopic);
 	ConnectMqtt();
@@ -235,11 +244,6 @@ void GetJSON(char* pBuffer, int pBufferSize, PulsePort* pMeter)
 
 	unsigned long vCurrentTime = gClock->GetTime();
 
-	/*
-	Serial.print("Creating JSON buffer: ");
-	Serial.print(JSON_OBJECT_SIZE(12));
-	Serial.println(" bytes");
-	*/
 
 	StaticJsonBuffer<JSON_OBJECT_SIZE(8)> vJsonBuffer;
 	JsonObject& vRoot = vJsonBuffer.createObject();
@@ -253,38 +257,143 @@ void GetJSON(char* pBuffer, int pBufferSize, PulsePort* pMeter)
 	vRoot.printTo(pBuffer, pBufferSize);
 }
 
-void ReportMBusToMqtt(MBus* pMeter)
+void GetJSONForImmediateValues(char* pBuffer, int pBufferSize, Telegram* pMeter)
 {
-	// TODO: Make implementation of MBus reader
+	unsigned long vCurrentTime = gClock->GetTime();
+
+	StaticJsonBuffer<JSON_OBJECT_SIZE(12)> vJsonBuffer;
+	JsonObject& vRoot = vJsonBuffer.createObject();
+	vRoot["s"] = "HP";
+	//vRoot["t"] = vCurrentTime;
+	//vRoot["b"] = ToPercentage(analogRead(A0), 1024, 512);
+
+	UserData* vData = pMeter->Data;
+	
+	while (vData != NULL)
+	{
+		if (vData->Storage == 0)
+		{
+			switch (vData->Type)
+			{
+			case UserDataType_FlowTemperature:
+				vRoot["t1"] = vData->Value;
+				break;
+			case UserDataType_ReturnTemperature:
+				vRoot["t2"] = vData->Value;
+				break;
+			case UserDataType_TemperatureDifference:
+				vRoot["td"] = vData->Value;
+				break;
+			case UserDataType_Power1:
+				vRoot["pwr"] = vData->Value;
+				break;
+			case UserDataType_VolumeFlow:
+				vRoot["flw"] = vData->Value;
+				break;
+			case UserDataType_DateAndTime:
+				vRoot["hpt"] = vData->Value;
+				break;
+			}
+		}
+		vData = vData->Next;
+	}
+
+	vRoot.printTo(pBuffer, pBufferSize);
 }
 
-void ReportPulsePortToMqtt(PulsePort* pMeter)
+void GetJSONForTotalValues(char* pBuffer, int pBufferSize, Telegram* pMeter)
+{
+	unsigned long vCurrentTime = gClock->GetTime();
+
+	StaticJsonBuffer<JSON_OBJECT_SIZE(12)> vJsonBuffer;
+	JsonObject& vRoot = vJsonBuffer.createObject();
+	vRoot["s"] = "HP";
+//	vRoot["t"] = vCurrentTime;
+//	vRoot["b"] = ToPercentage(analogRead(A0), 1024, 512);
+
+	UserData* vData = pMeter->Data;
+	
+	while (vData != NULL)
+	{
+		if (vData->Storage == 0)
+		{
+			switch (vData->Type)
+			{
+			case UserDataType_Energy1: // Main Storage for total production
+				vRoot["en"] = vData->Value;
+				break;
+			case UserDataType_Volume:
+				vRoot["vol"] = vData->Value;
+				break;
+			case UserDataType_DateAndTime:
+				vRoot["hpt"] = vData->Value;
+				break;
+			case UserDataType_OnTime:
+				vRoot["on"] = vData->Value;
+				break;
+			}
+		}
+		vData = vData->Next;
+	}
+
+	vRoot.printTo(pBuffer, pBufferSize);
+}
+
+void ReportMBusToMqtt(MBus* pMeter)
+{
+	gHeatPumpMeter->ReadDevice(1);
+}
+void ReportMBusToMqtt(Telegram* pMeter)
+{
+	if (pMeter->Data == NULL)
+	{
+		Serial1.println("Telegram contains no data...");
+		return;
+	}
+
+	char vMessage[250];
+	GetJSONForImmediateValues(vMessage, sizeof(vMessage), pMeter);
+	ReportToMqtt(vMessage);
+
+	GetJSONForTotalValues(vMessage, sizeof(vMessage), pMeter);
+	ReportToMqtt(vMessage);
+}
+
+bool ReportToMqtt(char* pMessage)
 {
 	ConnectMqtt();
-	
-	char vMessage[150];
-	GetJSON(vMessage, sizeof(vMessage), pMeter);
-
-	if (!gMqttChannel->publish(vMessage))
+	bool vSuccess = false;
+	if (!gMqttChannel->publish(pMessage))
 	{
-		Serial.println(F("Failed to report to MQTT"));
-		Serial.println(vMessage);
+		Serial1.print(F("Failed to report to MQTT. Message: "));
+		Serial1.println(pMessage);
 	}
 	else
 	{
-		Serial.print(F("Successfully reported to MQTT: "));
-		Serial.println(vMessage);
-
-		// Increase total values and reset counter
-		pMeter->CommitTicksToTotal();
-		
-		// Store the values to EEPROM
-		pMeter->SaveTotalValue();
+		Serial1.print(F("Successfully reported to MQTT: "));
+		Serial1.println(pMessage);
+		vSuccess = true;
 	}
 
 	// ping the server to keep the mqtt connection alive 
 	if (!gMqttClient->ping()) {
 		gMqttClient->disconnect();
+	}
+
+	return vSuccess;
+}
+
+void ReportPulsePortToMqtt(PulsePort* pMeter)
+{
+	char vMessage[150];
+	GetJSON(vMessage, sizeof(vMessage), pMeter);
+	if (ReportToMqtt(vMessage))
+	{
+		// Increase total values and reset counter
+		pMeter->CommitTicksToTotal();
+
+		// Store the values to EEPROM
+		pMeter->SaveTotalValue();
 	}
 }
 
@@ -298,25 +407,25 @@ void ConnectMqtt() {
 		return;
 	}
 
-	Serial.print(F("Connecting to MQTT... "));
+	Serial1.println(F("Connecting to MQTT... "));
 	//delay(5000);
 
 	while ((ret = gMqttClient->connect()) != 0) { // connect will return 0 for connected
-		Serial.println(F("MQTT::connect failed"));
-		Serial.println(ret);
-		Serial.println(gMqttClient->connectErrorString(ret));
-		Serial.println(F("Retrying MQTT connection in 5 seconds..."));
+		Serial1.println("MQTT::connect failed: ");
+		Serial1.println(ret);
+		Serial1.println(gMqttClient->connectErrorString(ret));
+		Serial1.println(F("Retrying MQTT connection in 5 seconds..."));
 		gMqttClient->disconnect();
 		delay(5000);  // wait 5 seconds
 	}
-	Serial.println(F("MQTT Connected!"));
+	Serial1.println(F("MQTT Connected!"));
 }
 
 
 bool ConnectToWiFi()
 {
-	Serial.print(F("Connecting to AP: "));
-	Serial.print(gAppConfig.Ssid);
+	Serial1.print(F("Connecting to AP: "));
+	Serial1.print(gAppConfig.Ssid);
 
 	WiFi.softAPdisconnect(true);
 	WiFi.disconnect(true);
@@ -329,16 +438,15 @@ bool ConnectToWiFi()
 	while (WiFi.status() != WL_CONNECTED) 
 	{
 		FlashLED(RED_LED, 1);
-		Serial.print(".");
+		Serial1.print(".");
 		FlashLED(GREEN_LED, 1);
 		delay(200);                       // Wait for another while (to demonstrate the active low LED)
-		Serial.print(".");
+		Serial1.print(".");
 	}
 	FlashLED(GREEN_LED, 3);
 
-	Serial.println("");
-	Serial.print(F("Connected to WiFi at IP: "));
-	Serial.println(WiFi.localIP());
+	Serial1.print(F("Connected to WiFi at IP: "));
+	Serial1.println(WiFi.localIP());
 
 	return true;
 }
@@ -347,13 +455,13 @@ bool APButtonPressed()
 {
 	pinMode(AP_PIN, INPUT);
 
-	Serial.print(F("Press AP button now to set config via WiFi"));
+	Serial1.println(F("Press AP button now to set config via WiFi"));
 	for (int i = 0; i<10; i++)
 	{
 		if (digitalRead(AP_PIN) == LOW)
 		{
 			FlashLED(GREEN_LED, 5);
-			Serial.println(F("Starting config AP"));
+			Serial1.print(F("Starting config AP"));
 			return true;
 		}
 		else
@@ -362,11 +470,11 @@ bool APButtonPressed()
 			delay(100);
 			LED(RED_LED, false);
 			delay(100);
-			Serial.print(".");
+			Serial1.print(".");
 		}
 	}
 
-	Serial.println("");
+	Serial1.println("");
 	return false;
 }
 
@@ -392,13 +500,14 @@ void SetupLEDs()
 
 void SetupPorts()
 {
-	Serial.println(F("Pin 13 = Electrical meter reading (90ms pulse)"));
+	Serial1.println(F("Pin 13 = Electrical meter reading (90ms pulse)"));
 	
 	gElectricalMeter = new (BUFFER_ELECTRICAL_METER)PulsePort("EL", 13, 1000, 90000, 60, 0);
 	gElectricalMeter->ReadTotalValue();
 	gElectricalMeter->Begin();
 
 	gHeatPumpMeter = new MBus(MBUS_METER_ADDRESS, MBus_TelegramCallback, MBus_ErrorCallback);
+	gHeatPumpMeter->Debug = true;
 }
 
 
